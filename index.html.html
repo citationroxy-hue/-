@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AminoLearn</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#58a6ff;--accent2:#3fb950;--accent4:#d2a8ff;--text:#e6edf3;--text-muted:#8b949e;--essential:#f78166;--nonessential:#3fb950;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  header{padding:18px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--accent);}
+  .logo span{color:var(--accent4);font-style:italic;}
+  .progress-bar-wrap{display:flex;align-items:center;gap:10px;}
+  .progress-label{font-size:.75rem;color:var(--text-muted);font-family:'DM Mono',monospace;}
+  .progress-bar{width:150px;height:6px;background:var(--border);border-radius:99px;overflow:hidden;}
+  .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent4));border-radius:99px;transition:width .4s;}
+  .tabs{display:flex;gap:4px;padding:14px 28px 0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;}
+  .tab{padding:8px 18px;border-radius:8px 8px 0 0;font-size:.82rem;cursor:pointer;color:var(--text-muted);border:1px solid transparent;border-bottom:none;transition:all .2s;white-space:nowrap;background:transparent;font-family:'Noto Sans JP',sans-serif;}
+  .tab:hover{color:var(--text);background:var(--surface2);}
+  .tab.active{color:var(--accent);background:var(--bg);border-color:var(--border);border-bottom:1px solid var(--bg);margin-bottom:-1px;}
+  main{padding:28px;max-width:1200px;margin:0 auto;}
+  .section{display:none;}.section.active{display:block;}
+  .controls{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center;}
+  .search-wrap{position:relative;flex:1;min-width:180px;}
+  .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;}
+  input[type=text]{width:100%;padding:9px 10px 9px 34px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.88rem;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border-color .2s;}
+  input[type=text]:focus{border-color:var(--accent);}
+  .filter-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:.78rem;font-family:'Noto Sans JP',sans-serif;transition:all .2s;white-space:nowrap;}
+  .filter-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .filter-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;}
+  .amino-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+  .amino-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent4));opacity:0;transition:opacity .2s;}
+  .amino-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 24px rgba(88,166,255,.1);}
+  .amino-card:hover::before{opacity:1;}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .card-name{font-size:1.05rem;font-weight:700;}
+  .card-abbr{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);background:rgba(88,166,255,.1);padding:2px 8px;border-radius:4px;}
+  .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.7rem;font-weight:700;margin-bottom:10px;}
+  .badge.essential{background:rgba(247,129,102,.15);color:var(--essential);}
+  .badge.nonessential{background:rgba(63,185,80,.15);color:var(--nonessential);}
+  .badge.acidic{background:rgba(88,166,255,.15);color:var(--accent);}
+  .badge.basic{background:rgba(210,168,255,.15);color:var(--accent4);}
+  .card-formula{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--text-muted);margin-bottom:8px;}
+  .card-svg-wrap{width:100%;display:flex;align-items:center;justify-content:center;min-height:100px;}
+  .learned-dot{position:absolute;top:13px;right:13px;width:9px;height:9px;border-radius:50%;background:var(--accent2);opacity:0;transition:opacity .3s;}
+  .amino-card.learned .learned-dot{opacity:1;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;padding:16px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;max-width:540px;width:100%;position:relative;animation:modalIn .25s ease;max-height:92vh;overflow-y:auto;}
+  @keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  .modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;padding:4px 8px;border-radius:6px;}
+  .modal-close:hover{background:var(--surface2);color:var(--text);}
+  .modal-title{font-family:'DM Serif Display',serif;font-size:1.9rem;margin-bottom:4px;}
+  .modal-abbr-row{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+  .modal-abbr{font-family:'DM Mono',monospace;font-size:.95rem;color:var(--accent);}
+  .modal-formula{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--text-muted);}
+  .modal-structure{background:var(--surface2);border-radius:12px;padding:18px;display:flex;align-items:center;justify-content:center;min-height:160px;margin-bottom:18px;}
+  .modal-desc{font-size:.86rem;color:var(--text-muted);line-height:1.7;margin-bottom:16px;}
+  .modal-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .btn{padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-size:.86rem;font-family:'Noto Sans JP',sans-serif;transition:all .2s;font-weight:500;}
+  .btn-primary{background:var(--accent);color:#000;}.btn-success{background:var(--accent2);color:#000;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-purple{background:var(--accent4);color:#000;}
+  .flash-container{display:flex;flex-direction:column;align-items:center;gap:24px;padding:16px 0;}
+  .flash-progress{font-family:'DM Mono',monospace;font-size:.83rem;color:var(--text-muted);}
+  .flash-card-wrap{perspective:1000px;width:100%;max-width:460px;height:290px;cursor:pointer;}
+  .flash-card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);}
+  .flash-card-inner.flipped{transform:rotateY(180deg);}
+  .flash-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px solid var(--border);padding:24px;}
+  .flash-front{background:var(--surface);}.flash-back{background:var(--surface2);transform:rotateY(180deg);}
+  .flash-hint{font-size:.73rem;color:var(--text-muted);}
+  .flash-main{font-family:'DM Serif Display',serif;font-size:2.8rem;color:var(--text);}
+  .flash-sub{font-family:'DM Mono',monospace;font-size:.95rem;color:var(--accent);}
+  .flash-nav{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  .quiz-container{max-width:600px;margin:0 auto;}
+  .quiz-question{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:7px;line-height:1.3;}
+  .quiz-sub{font-size:.83rem;color:var(--text-muted);margin-bottom:24px;}
+  .quiz-options{display:flex;flex-direction:column;gap:10px;}
+  .quiz-option{padding:14px 18px;border-radius:11px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:.92rem;transition:all .2s;text-align:left;color:var(--text);font-family:'Noto Sans JP',sans-serif;}
+  .quiz-option:hover:not(:disabled){border-color:var(--accent);background:var(--surface2);}
+  .quiz-option.correct{border-color:var(--accent2);background:rgba(63,185,80,.1);color:var(--accent2);}
+  .quiz-option.wrong{border-color:var(--essential);background:rgba(247,129,102,.1);color:var(--essential);}
+  .quiz-option:disabled{cursor:default;}
+  .quiz-result{margin-top:18px;padding:14px;border-radius:11px;font-size:.88rem;display:none;}
+  .quiz-result.show{display:block;}
+  .quiz-result.ok{background:rgba(63,185,80,.1);color:var(--accent2);border:1px solid var(--accent2);}
+  .quiz-result.ng{background:rgba(247,129,102,.1);color:var(--essential);border:1px solid var(--essential);}
+  .quiz-footer{margin-top:22px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+  .quiz-score{font-family:'DM Mono',monospace;font-size:.83rem;color:var(--text-muted);}
+  .struct-quiz-wrap{max-width:660px;margin:0 auto;}
+  .sq-mode-toggle{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+  .sq-mode-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;font-size:.78rem;font-family:'Noto Sans JP',sans-serif;transition:all .2s;}
+  .sq-mode-btn.active{background:var(--accent4);color:#000;border-color:var(--accent4);font-weight:700;}
+  .struct-display-big{background:var(--surface2);border:2px solid var(--accent4);border-radius:15px;padding:28px;display:flex;align-items:center;justify-content:center;min-height:200px;margin-bottom:24px;position:relative;}
+  .sq-label{position:absolute;top:11px;left:14px;font-size:.7rem;color:var(--accent4);font-family:'DM Mono',monospace;letter-spacing:1px;}
+  .sq-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .sq-option{padding:12px 10px;border-radius:11px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:.9rem;transition:all .2s;text-align:center;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-weight:500;}
+  .sq-option:hover:not(:disabled){border-color:var(--accent4);background:rgba(210,168,255,.08);}
+  .sq-option.correct{border-color:var(--accent2);background:rgba(63,185,80,.1);color:var(--accent2);}
+  .sq-option.wrong{border-color:var(--essential);background:rgba(247,129,102,.1);color:var(--essential);}
+  .sq-option:disabled{cursor:default;}
+  .sq-result{padding:13px 16px;border-radius:11px;font-size:.88rem;margin-bottom:14px;display:none;line-height:1.6;}
+  .sq-result.show{display:block;}
+  .sq-result.ok{background:rgba(63,185,80,.1);color:var(--accent2);border:1px solid var(--accent2);}
+  .sq-result.ng{background:rgba(247,129,102,.1);color:var(--essential);border:1px solid var(--essential);}
+  .sq-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .sq-score{font-family:'DM Mono',monospace;font-size:.83rem;color:var(--text-muted);}
+  .compare-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .cmp-tag{padding:5px 12px;border-radius:99px;border:1px solid var(--border);font-size:.76rem;cursor:pointer;transition:all .2s;color:var(--text-muted);background:var(--surface2);white-space:nowrap;}
+  .cmp-tag:hover{border-color:var(--accent);color:var(--accent);}
+  .cmp-tag.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;}
+  .cmp-select-hint{font-size:.8rem;color:var(--text-muted);margin-bottom:12px;}
+  .compare-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+  .cmp-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .25s;}
+  .cmp-card:hover{border-color:var(--accent4);transform:translateY(-2px);}
+  .cmp-card.selected{border-color:var(--accent4);background:rgba(210,168,255,.06);box-shadow:0 0 0 2px var(--accent4);}
+  .cmp-name{font-weight:700;font-size:.9rem;text-align:center;}
+  .cmp-abbr{font-family:'DM Mono',monospace;font-size:.73rem;color:var(--accent);}
+  .cmp-svg-wrap{width:100%;display:flex;align-items:center;justify-content:center;min-height:90px;}
+  .compare-panel{position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--surface);border-top:1px solid var(--border);padding:14px 28px;display:none;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between;}
+  .compare-panel.show{display:flex;}
+  .compare-selected-list{display:flex;gap:8px;flex-wrap:wrap;}
+  .compare-chip{padding:5px 12px;border-radius:99px;background:rgba(210,168,255,.15);color:var(--accent4);font-size:.8rem;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:6px;}
+  .compare-chip-x{cursor:pointer;opacity:.6;}.compare-chip-x:hover{opacity:1;}
+  .full-compare{display:none;}.full-compare.show{display:block;}
+  .compare-cards-row{display:grid;gap:18px;margin-bottom:22px;}
+  .full-cmp-card{background:var(--surface);border:1px solid var(--accent4);border-radius:15px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .full-cmp-title{font-family:'DM Serif Display',serif;font-size:1.25rem;text-align:center;}
+  .full-cmp-meta{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);text-align:center;}
+  .full-cmp-svg{display:flex;align-items:center;justify-content:center;width:100%;min-height:180px;background:var(--surface2);border-radius:10px;padding:14px;}
+  .full-cmp-desc{font-size:.8rem;color:var(--text-muted);line-height:1.6;text-align:center;}
+  .sidechain-box{background:rgba(210,168,255,.08);border:1px solid rgba(210,168,255,.3);border-radius:8px;padding:7px 12px;font-size:.78rem;color:var(--accent4);text-align:center;font-family:'DM Mono',monospace;width:100%;}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:28px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:18px;text-align:center;}
+  .stat-number{font-family:'DM Serif Display',serif;font-size:2.4rem;color:var(--accent);}
+  .stat-label{font-size:.78rem;color:var(--text-muted);margin-top:4px;}
+  .learned-list{display:flex;flex-wrap:wrap;gap:8px;}
+  .learned-tag{padding:5px 12px;border-radius:99px;border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:.78rem;color:var(--text-muted);background:var(--surface);}
+  .learned-tag.done{border-color:var(--accent2);color:var(--accent2);background:rgba(63,185,80,.1);}
+  @media(max-width:600px){main{padding:14px;}header{padding:12px 14px;}.tabs{padding:10px 14px 0;}.sq-options{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Amino<span>Learn</span></div>
+  <div class="progress-bar-wrap">
+    <span class="progress-label" id="progressLabel">0 / 20 学習済み</span>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+</header>
+<div class="tabs">
+  <button class="tab active" onclick="showSection('cards',this)">📋 一覧</button>
+  <button class="tab" onclick="showSection('flash',this)">🃏 フラッシュカード</button>
+  <button class="tab" onclick="showSection('quiz',this)">🧠 クイズ</button>
+  <button class="tab" onclick="showSection('structquiz',this)">🔬 構造式クイズ</button>
+  <button class="tab" onclick="showSection('compare',this)">📐 構造式比較</button>
+  <button class="tab" onclick="showSection('stats',this)">📊 進捗</button>
+</div>
+<main>
+  <section class="section active" id="section-cards">
+    <div class="controls">
+      <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="名前・略号で検索..." oninput="filterCards()"></div>
+      <button class="filter-btn active" onclick="setFilter('all',this)">すべて</button>
+      <button class="filter-btn" onclick="setFilter('essential',this)">必須アミノ酸</button>
+      <button class="filter-btn" onclick="setFilter('nonessential',this)">非必須</button>
+    </div>
+    <div class="card-grid" id="cardGrid"></div>
+  </section>
+  <section class="section" id="section-flash">
+    <div class="flash-container">
+      <div class="flash-progress" id="flashProgress">カード 1 / 20</div>
+      <div class="flash-card-wrap" onclick="flipCard()">
+        <div class="flash-card-inner" id="flashInner">
+          <div class="flash-face flash-front">
+            <div class="flash-hint">タップして裏を見る</div>
+            <div class="flash-main" id="flashFront">Gly</div>
+            <div class="flash-sub" id="flashFrontSub">略号</div>
+          </div>
+          <div class="flash-face flash-back">
+            <div class="flash-main" id="flashBack" style="font-size:2rem"></div>
+            <div class="flash-sub" id="flashBackSub"></div>
+            <div id="flashStructure" style="width:100%;display:flex;justify-content:center;margin-top:6px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="flash-nav">
+        <button class="btn btn-outline" onclick="prevFlash()">← 前へ</button>
+        <button class="btn btn-success" onclick="markLearned()">✓ 覚えた</button>
+        <button class="btn btn-outline" onclick="nextFlash()">次へ →</button>
+      </div>
+    </div>
+  </section>
+  <section class="section" id="section-quiz">
+    <div class="quiz-container">
+      <div class="quiz-question" id="quizQ"></div>
+      <div class="quiz-sub" id="quizSub"></div>
+      <div class="quiz-options" id="quizOptions"></div>
+      <div class="quiz-result" id="quizResult"></div>
+      <div class="quiz-footer">
+        <div class="quiz-score" id="quizScore">正解: 0 / 0</div>
+        <button class="btn btn-primary" id="quizNextBtn" onclick="nextQuiz()" style="display:none">次の問題 →</button>
+      </div>
+    </div>
+  </section>
+  <section class="section" id="section-structquiz">
+    <div class="struct-quiz-wrap">
+      <div class="sq-mode-toggle">
+        <button class="sq-mode-btn active" onclick="setSqMode('struct_to_name',this)">構造式 → 名前</button>
+        <button class="sq-mode-btn" onclick="setSqMode('name_to_struct',this)">名前 → 構造式</button>
+      </div>
+      <div class="struct-display-big" id="sqDisplay"><span class="sq-label">構造式</span><div id="sqStructSvg"></div></div>
+      <div class="quiz-question" id="sqQuestion" style="margin-bottom:7px;font-size:1.3rem;"></div>
+      <div class="quiz-sub" id="sqSub" style="margin-bottom:18px;"></div>
+      <div class="sq-options" id="sqOptions"></div>
+      <div class="sq-result" id="sqResult"></div>
+      <div class="sq-footer">
+        <div class="sq-score" id="sqScore">正解: 0 / 0</div>
+        <button class="btn btn-purple" id="sqNextBtn" onclick="nextSq()" style="display:none">次の問題 →</button>
+      </div>
+    </div>
+  </section>
+  <section class="section" id="section-compare">
+    <div id="compareSelectView">
+      <p class="cmp-select-hint">比較したいアミノ酸を2〜4個選んでください</p>
+      <div class="compare-filter-row">
+        <span class="cmp-tag active" onclick="setCmpFilter('all',this)">すべて</span>
+        <span class="cmp-tag" onclick="setCmpFilter('essential',this)">必須</span>
+        <span class="cmp-tag" onclick="setCmpFilter('nonessential',this)">非必須</span>
+        <span class="cmp-tag" onclick="setCmpFilter('aromatic',this)">芳香族</span>
+        <span class="cmp-tag" onclick="setCmpFilter('charged',this)">荷電側鎖</span>
+        <span class="cmp-tag" onclick="setCmpFilter('sulfur',this)">硫黄含有</span>
+        <span class="cmp-tag" onclick="setCmpFilter('branched',this)">分岐鎖(BCAA)</span>
+      </div>
+      <div class="compare-grid" id="compareGrid"></div>
+    </div>
+    <div class="full-compare" id="fullCompare">
+      <div style="display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-outline" onclick="backToSelect()">← 選択に戻る</button>
+        <span style="font-size:.83rem;color:var(--text-muted)">側鎖の違いに注目しましょう</span>
+      </div>
+      <div class="compare-cards-row" id="compareCardsRow"></div>
+    </div>
+  </section>
+  <section class="section" id="section-stats">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-number" id="statLearned">0</div><div class="stat-label">学習済みアミノ酸</div></div>
+      <div class="stat-card"><div class="stat-number" id="statTotal">20</div><div class="stat-label">総アミノ酸数</div></div>
+      <div class="stat-card"><div class="stat-number" id="statQC">0</div><div class="stat-label">クイズ正解数</div></div>
+      <div class="stat-card"><div class="stat-number" id="statQT">0</div><div class="stat-label">クイズ回答数</div></div>
+    </div>
+    <h3 style="color:var(--text-muted);font-size:.83rem;margin-bottom:12px;font-weight:500">学習状況</h3>
+    <div class="learned-list" id="learnedList"></div>
+    <div style="margin-top:22px;"><button class="btn btn-outline" onclick="resetProgress()">🔄 進捗をリセット</button></div>
+  </section>
+</main>
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <div class="modal-title" id="mName"></div>
+    <div class="modal-abbr-row"><span class="modal-abbr" id="mAbbr"></span><span class="modal-formula" id="mFormula"></span><span class="badge" id="mBadge"></span></div>
+    <div class="modal-structure" id="mStructure"></div>
+    <div class="modal-desc" id="mDesc"></div>
+    <div class="modal-footer">
+      <button class="btn btn-success" id="mLearnBtn" onclick="toggleLearnedFromModal()">✓ 覚えた</button>
+      <button class="btn btn-outline" onclick="closeModalDirect()">閉じる</button>
+    </div>
+  </div>
+</div>
+<div class="compare-panel" id="comparePanel">
+  <div><div style="font-size:.78rem;color:var(--text-muted);margin-bottom:7px;">選択中</div><div class="compare-selected-list" id="compareSelectedList"></div></div>
+  <button class="btn btn-purple" onclick="showComparison()">比較する →</button>
+</div>
+
+<script>
+// ============================================================
+// SVG ENGINE — verified working from debug session
+// ============================================================
+const COL={C:'#e6edf3',N:'#58a6ff',O:'#f78166',S:'#f0b429',bond:'#6e7681'};
+const BG='#161b22';
+const FSM=11;
+
+function f(v){return Math.round(v*10)/10;}
+function line(x1,y1,x2,y2){return `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${COL.bond}" stroke-width="1.8" stroke-linecap="round"/>`;}
+function dblLine(x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1,nx=-dy/len*2.2,ny=dx/len*2.2;return line(x1,y1,x2,y2)+line(x1+nx,y1+ny,x2+nx,y2+ny);}
+function atom(x,y,s,col,fs){fs=fs||FSM;const w=s.length*(fs*0.62)+4,h=fs+4,ax=x-w/2;return `<rect x="${f(ax)}" y="${f(y-h/2)}" width="${f(w)}" height="${f(h)}" fill="${BG}" rx="2"/><text x="${f(x)}" y="${f(y)}" fill="${col}" font-size="${fs}" text-anchor="middle" dominant-baseline="middle" font-family="DM Mono,monospace">${s}</text>`;}
+function poly(pts){return `<polygon points="${pts.map(p=>f(p[0])+','+f(p[1])).join(' ')}" fill="none" stroke="${COL.bond}" stroke-width="1.8" stroke-linejoin="round"/>`;}
+function mksvg(W,H,body){return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;}
+
+// backbone: NH2 up, COOH right, H down, Cα at (cx,cy)
+function backbone(cx,cy,u,fs){
+  fs=fs||FSM;
+  return line(cx,cy,cx,cy-u)+atom(cx,cy-u-fs*0.7,'NH₂',COL.N,fs)
+        +line(cx,cy,cx+u*1.5,cy)+atom(cx+u*1.5+fs*1.2,cy,'COOH',COL.O,fs)
+        +line(cx,cy,cx,cy+u)+atom(cx,cy+u+fs*0.7,'H',COL.C,fs)
+        +atom(cx,cy,'C',COL.C,fs);
+}
+
+function drawGly(sc){sc=sc||1;const u=28*sc,W=Math.round(200*sc),H=Math.round(110*sc),cx=Math.round(65*sc),cy=Math.round(55*sc),fs=sc>=1.4?13:FSM;return mksvg(W,H,line(cx,cy,cx-u,cy)+atom(cx-u-fs*0.5,cy,'H',COL.C,fs)+backbone(cx,cy,u,fs));}
+function drawAla(sc){sc=sc||1;const u=28*sc,W=Math.round(215*sc),H=Math.round(110*sc),cx=Math.round(75*sc),cy=Math.round(55*sc),fs=sc>=1.4?13:FSM;return mksvg(W,H,line(cx,cy,cx-u,cy)+atom(cx-u-fs*0.9,cy,'CH₃',COL.C,fs)+backbone(cx,cy,u,fs));}
+function drawVal(sc){sc=sc||1;const u=28*sc,W=Math.round(240*sc),H=Math.round(145*sc),cx=Math.round(120*sc),cy=Math.round(72*sc),fs=sc>=1.4?13:FSM;const chx=cx-u;return mksvg(W,H,line(cx,cy,chx,cy)+atom(chx,cy,'CH',COL.C,fs)+line(chx,cy,chx,cy-u)+atom(chx,cy-u-fs*0.7,'CH₃',COL.C,fs)+line(chx,cy,chx,cy+u)+atom(chx,cy+u+fs*0.7,'CH₃',COL.C,fs)+backbone(cx,cy,u,fs));}
+function drawLeu(sc){sc=sc||1;const u=28*sc,W=Math.round(265*sc),H=Math.round(145*sc),cx=Math.round(135*sc),cy=Math.round(72*sc),fs=sc>=1.4?13:FSM;const ch2x=cx-u,chx=cx-u*2;return mksvg(W,H,line(cx,cy,ch2x,cy)+atom(ch2x,cy,'CH₂',COL.C,fs)+line(ch2x,cy,chx,cy)+atom(chx,cy,'CH',COL.C,fs)+line(chx,cy,chx,cy-u)+atom(chx,cy-u-fs*0.7,'CH₃',COL.C,fs)+line(chx,cy,chx,cy+u)+atom(chx,cy+u+fs*0.7,'CH₃',COL.C,fs)+backbone(cx,cy,u,fs));}
+function drawIle(sc){sc=sc||1;const u=28*sc,W=Math.round(255*sc),H=Math.round(160*sc),cx=Math.round(130*sc),cy=Math.round(75*sc),fs=sc>=1.4?13:FSM;const chx=cx-u;return mksvg(W,H,line(cx,cy,chx,cy)+atom(chx,cy,'CH',COL.C,fs)+line(chx,cy,chx,cy-u)+atom(chx,cy-u,'CH₂',COL.C,fs)+line(chx,cy-u,chx,cy-u*2)+atom(chx,cy-u*2-fs*0.7,'CH₃',COL.C,fs)+line(chx,cy,chx,cy+u)+atom(chx,cy+u+fs*0.7,'CH₃',COL.C,fs)+backbone(cx,cy,u,fs));}
+function drawSer(sc){sc=sc||1;const u=28*sc,W=Math.round(245*sc),H=Math.round(110*sc),cx=Math.round(110*sc),cy=Math.round(55*sc),fs=sc>=1.4?13:FSM;const ch2x=cx-u;return mksvg(W,H,line(cx,cy,ch2x,cy)+atom(ch2x,cy,'CH₂',COL.C,fs)+line(ch2x,cy,ch2x-u,cy)+atom(ch2x-u-fs*0.6,cy,'HO',COL.O,fs)+backbone(cx,cy,u,fs));}
+function drawThr(sc){sc=sc||1;const u=28*sc,W=Math.round(245*sc),H=Math.round(148*sc),cx=Math.round(125*sc),cy=Math.round(72*sc),fs=sc>=1.4?13:FSM;const chx=cx-u;return mksvg(W,H,line(cx,cy,chx,cy)+atom(chx,cy,'CH',COL.C,fs)+line(chx,cy,chx,cy-u)+atom(chx,cy-u-fs*0.7,'HO',COL.O,fs)+line(chx,cy,chx,cy+u)+atom(chx,cy+u+fs*0.7,'CH₃',COL.C,fs)+backbone(cx,cy,u,fs));}
+function drawCys(sc){sc=sc||1;const u=28*sc,W=Math.round(245*sc),H=Math.round(110*sc),cx=Math.round(110*sc),cy=Math.round(55*sc),fs=sc>=1.4?13:FSM;const ch2x=cx-u;return mksvg(W,H,line(cx,cy,ch2x,cy)+atom(ch2x,cy,'CH₂',COL.C,fs)+line(ch2x,cy,ch2x-u,cy)+atom(ch2x-u-fs*0.5,cy,'HS',COL.S,fs)+backbone(cx,cy,u,fs));}
+function drawMet(sc){sc=sc||1;const u=26*sc,W=Math.round(305*sc),H=Math.round(110*sc),cx=Math.round(165*sc),cy=Math.round(55*sc),fs=sc>=1.4?13:FSM;const a=cx-u,b=cx-u*2,s=cx-u*3,m=cx-u*4;return mksvg(W,H,line(cx,cy,a,cy)+atom(a,cy,'CH₂',COL.C,fs)+line(a,cy,b,cy)+atom(b,cy,'CH₂',COL.C,fs)+line(b,cy,s,cy)+atom(s,cy,'S',COL.S,fs)+line(s,cy,m,cy)+atom(m-fs*0.9,cy,'CH₃',COL.C,fs)+backbone(cx,cy,u,fs));}
+function drawAsp(sc){sc=sc||1;const u=28*sc,W=Math.round(255*sc),H=Math.round(110*sc),cx=Math.round(125*sc),cy=Math.round(55*sc),fs=sc>=1.4?13:FSM;const ch2x=cx-u;return mksvg(W,H,line(cx,cy,ch2x,cy)+atom(ch2x,cy,'CH₂',COL.C,fs)+line(ch2x,cy,ch2x-u,cy)+atom(ch2x-u-fs*1.1,cy,'HOOC',COL.O,fs)+backbone(cx,cy,u,fs));}
+function drawGlu(sc){sc=sc||1;const u=26*sc,W=Math.round(285*sc),H=Math.round(110*sc),cx=Math.round(152*sc),cy=Math.round(55*sc),fs=sc>=1.4?13:FSM;const a=cx-u,b=cx-u*2;return mksvg(W,H,line(cx,cy,a,cy)+atom(a,cy,'CH₂',COL.C,fs)+line(a,cy,b,cy)+atom(b,cy,'CH₂',COL.C,fs)+line(b,cy,b-u,cy)+atom(b-u-fs*1.1,cy,'HOOC',COL.O,fs)+backbone(cx,cy,u,fs));}
+function drawAsn(sc){sc=sc||1;const u=28*sc,W=Math.round(270*sc),H=Math.round(138*sc),cx=Math.round(138*sc),cy=Math.round(65*sc),fs=sc>=1.4?13:FSM;const ch2x=cx-u,cox=ch2x-u;return mksvg(W,H,line(cx,cy,ch2x,cy)+atom(ch2x,cy,'CH₂',COL.C,fs)+line(ch2x,cy,cox,cy)+atom(cox,cy,'C',COL.C,fs)+dblLine(cox,cy,cox,cy-u)+atom(cox,cy-u-fs*0.7,'O',COL.O,fs)+line(cox,cy,cox,cy+u)+atom(cox,cy+u+fs*0.7,'H₂N',COL.N,fs)+backbone(cx,cy,u,fs));}
+function drawGln(sc){sc=sc||1;const u=26*sc,W=Math.round(305*sc),H=Math.round(138*sc),cx=Math.round(170*sc),cy=Math.round(65*sc),fs=sc>=1.4?13:FSM;const a=cx-u,b=cx-u*2,cox=cx-u*3;return mksvg(W,H,line(cx,cy,a,cy)+atom(a,cy,'CH₂',COL.C,fs)+line(a,cy,b,cy)+atom(b,cy,'CH₂',COL.C,fs)+line(b,cy,cox,cy)+atom(cox,cy,'C',COL.C,fs)+dblLine(cox,cy,cox,cy-u)+atom(cox,cy-u-fs*0.7,'O',COL.O,fs)+line(cox,cy,cox,cy+u)+atom(cox,cy+u+fs*0.7,'H₂N',COL.N,fs)+backbone(cx,cy,u,fs));}
+function drawLys(sc){sc=sc||1;const u=24*sc,W=Math.round(315*sc),H=Math.round(110*sc),cx=Math.round(178*sc),cy=Math.round(55*sc),fs=sc>=1.4?13:FSM;const a=cx-u,b=cx-u*2,c=cx-u*3,d=cx-u*4,e=cx-u*5;return mksvg(W,H,line(cx,cy,a,cy)+atom(a,cy,'CH₂',COL.C,fs)+line(a,cy,b,cy)+atom(b,cy,'CH₂',COL.C,fs)+line(b,cy,c,cy)+atom(c,cy,'CH₂',COL.C,fs)+line(c,cy,d,cy)+atom(d,cy,'CH₂',COL.C,fs)+line(d,cy,e,cy)+atom(e-fs*0.8,cy,'H₂N',COL.N,fs)+backbone(cx,cy,u,fs));}
+function drawArg(sc){sc=sc||1;const u=25*sc,W=Math.round(350*sc),H=Math.round(148*sc),cx=Math.round(190*sc),cy=Math.round(72*sc),fs=sc>=1.4?13:FSM;const a=cx-u,b=cx-u*2,c=cx-u*3,nh=cx-u*4,g=cx-u*5;return mksvg(W,H,line(cx,cy,a,cy)+atom(a,cy,'CH₂',COL.C,fs)+line(a,cy,b,cy)+atom(b,cy,'CH₂',COL.C,fs)+line(b,cy,c,cy)+atom(c,cy,'CH₂',COL.C,fs)+line(c,cy,nh,cy)+atom(nh,cy,'NH',COL.N,fs)+line(nh,cy,g,cy)+atom(g,cy,'C',COL.C,fs)+dblLine(g,cy,g,cy-u)+atom(g,cy-u-fs*0.7,'NH',COL.N,fs)+line(g,cy,g,cy+u)+atom(g,cy+u+fs*0.7,'H₂N',COL.N,fs)+backbone(cx,cy,u,fs));}
+
+function drawHis(sc){
+  sc=sc||1;const u=28*sc,W=Math.round(245*sc),H=Math.round(178*sc),cx=Math.round(138*sc),cy=Math.round(50*sc),fs=sc>=1.4?13:FSM;
+  const ch2x=cx-u,ch2y=cy;
+  const r=20*sc,attach=[ch2x,ch2y+u*0.7];
+  const pts=Array.from({length:5},(_,i)=>{const a=(i*72-90)*Math.PI/180;return[attach[0]+r*Math.cos(a),attach[1]+r+r*Math.sin(a)];});
+  const dx=attach[0]-pts[0][0],dy=attach[1]-pts[0][1];
+  const rp=pts.map(p=>[p[0]+dx,p[1]+dy]);
+  return mksvg(W,H,backbone(cx,cy,u,fs)+line(cx-u,cy,rp[0][0],rp[0][1])+poly(rp)+atom(rp[1][0]+fs*0.5,rp[1][1],'N',COL.N,fs)+atom(rp[3][0]-fs*0.3,rp[3][1],'N',COL.N,fs));
+}
+
+function drawPhe(sc){
+  sc=sc||1;const u=28*sc,W=Math.round(230*sc),H=Math.round(200*sc),cx=Math.round(115*sc),cy=Math.round(48*sc),fs=sc>=1.4?13:FSM;
+  const ch2x=cx,ch2y=cy+u;
+  const r=22*sc,rcx=ch2x,rcy=ch2y+u*0.8+r;
+  const hex=Array.from({length:6},(_,i)=>{const a=(i*60-90)*Math.PI/180;return[rcx+r*Math.cos(a),rcy+r*Math.sin(a)];});
+  return mksvg(W,H,backbone(cx,cy,u,fs)+line(ch2x,ch2y,hex[0][0],hex[0][1])+poly(hex));
+}
+
+function drawTyr(sc){
+  sc=sc||1;const u=28*sc,W=Math.round(230*sc),H=Math.round(220*sc),cx=Math.round(115*sc),cy=Math.round(46*sc),fs=sc>=1.4?13:FSM;
+  const ch2x=cx,ch2y=cy+u;
+  const r=22*sc,rcx=ch2x,rcy=ch2y+u*0.8+r;
+  const hex=Array.from({length:6},(_,i)=>{const a=(i*60-90)*Math.PI/180;return[rcx+r*Math.cos(a),rcy+r*Math.sin(a)];});
+  const bot=hex[3];
+  return mksvg(W,H,backbone(cx,cy,u,fs)+line(ch2x,ch2y,hex[0][0],hex[0][1])+poly(hex)+line(bot[0],bot[1],bot[0],bot[1]+u*0.7)+atom(bot[0],bot[1]+u*0.7+fs*0.7,'OH',COL.O,fs));
+}
+
+function drawTrp(sc){
+  sc=sc||1;const u=28*sc,W=Math.round(270*sc),H=Math.round(215*sc),cx=Math.round(128*sc),cy=Math.round(44*sc),fs=sc>=1.4?13:FSM;
+  const ch2x=cx,ch2y=cy+u;
+  const r5=20*sc;
+  const p5c=[ch2x-r5*0.3,ch2y+u*0.7+r5];
+  const p5=Array.from({length:5},(_,i)=>{const a=(i*72-90)*Math.PI/180;return[p5c[0]+r5*Math.cos(a),p5c[1]+r5*Math.sin(a)];});
+  const dx5=ch2x-p5[0][0],dy5=ch2y+u*0.55-p5[0][1];
+  const rp5=p5.map(p=>[p[0]+dx5,p[1]+dy5]);
+  const shA=rp5[1],shB=rp5[2];
+  const r6=22*sc;
+  const midSh=[(shA[0]+shB[0])/2,(shA[1]+shB[1])/2];
+  const shLen=Math.sqrt((shB[0]-shA[0])**2+(shB[1]-shA[1])**2)||1;
+  const perpX=(shB[1]-shA[1])/shLen,perpY=-(shB[0]-shA[0])/shLen;
+  const p6c=[midSh[0]+perpX*r6,midSh[1]+perpY*r6];
+  const p6=Array.from({length:6},(_,i)=>{const a=(i*60)*Math.PI/180;return[p6c[0]+r6*Math.cos(a),p6c[1]+r6*Math.sin(a)];});
+  const Nx=(rp5[0][0]+rp5[4][0])/2,Ny=(rp5[0][1]+rp5[4][1])/2;
+  return mksvg(W,H,backbone(cx,cy,u,fs)+line(ch2x,ch2y,rp5[0][0],rp5[0][1])+poly(rp5)+poly(p6)+atom(Nx+fs*0.1,Ny+fs*0.5,'N',COL.N,fs));
+}
+
+function drawPro(sc){
+  sc=sc||1;const W=Math.round(215*sc),H=Math.round(165*sc),fs=sc>=1.4?13:FSM;
+  const u=28*sc,cx=Math.round(118*sc),cy=Math.round(52*sc);
+  const r=30*sc;
+  const penta=Array.from({length:5},(_,i)=>{const a=(i*72-90)*Math.PI/180;return[cx+r*Math.cos(a),cy+r*0.4+r*Math.sin(a)];});
+  const Ca=penta[0],Nv=penta[1],c1=penta[2],c2=penta[3],c3=penta[4];
+  const center=[cx,cy+r*0.4];
+  return mksvg(W,H,
+    poly(penta)+
+    line(Ca[0],Ca[1],Ca[0]+u*1.5,Ca[1])+atom(Ca[0]+u*1.5+fs*1.2,Ca[1],'COOH',COL.O,fs)+
+    atom(Ca[0]+(center[0]-Ca[0])*0.3,Ca[1]+(center[1]-Ca[1])*0.35,'Cα',COL.C,fs)+
+    atom(Nv[0]+(center[0]-Nv[0])*0.3,Nv[1]+(center[1]-Nv[1])*0.35,'N',COL.N,fs)+
+    atom(c1[0]+(center[0]-c1[0])*0.28,c1[1]+(center[1]-c1[1])*0.28,'CH₂',COL.C,fs)+
+    atom(c2[0]+(center[0]-c2[0])*0.28,c2[1]+(center[1]-c2[1])*0.28,'CH₂',COL.C,fs)+
+    atom(c3[0]+(center[0]-c3[0])*0.28,c3[1]+(center[1]-c3[1])*0.28,'CH₂',COL.C,fs)+
+    line(Nv[0],Nv[1],Nv[0]-(center[0]-Nv[0])*0.6,Nv[1]-(center[1]-Nv[1])*0.6)+
+    atom(Nv[0]-(center[0]-Nv[0])*0.75,Nv[1]-(center[1]-Nv[1])*0.75,'H',COL.C,fs)
+  );
+}
+
+// draw(abbr3, large)
+const drawFns={
+  Gly:drawGly,Ala:drawAla,Val:drawVal,Leu:drawLeu,Ile:drawIle,
+  Ser:drawSer,Thr:drawThr,Cys:drawCys,Met:drawMet,
+  Asp:drawAsp,Glu:drawGlu,Asn:drawAsn,Gln:drawGln,
+  Lys:drawLys,Arg:drawArg,His:drawHis,
+  Phe:drawPhe,Tyr:drawTyr,Trp:drawTrp,Pro:drawPro
+};
+function getSvg(a,large){
+  const fn=drawFns[a.abbr3];
+  if(!fn) return '';
+  return fn(large?1.5:1);
+}
+
+// ===== DATA =====
+const aminoAcids=[
+  {name:"グリシン",en:"Glycine",abbr3:"Gly",abbr1:"G",essential:false,formula:"C₂H₅NO₂",type:"neutral",sidechain:"H（水素のみ）",tags:[],desc:"最もシンプルな構造。側鎖はHのみで光学異性体が存在しない。コラーゲンの主要成分。"},
+  {name:"アラニン",en:"Alanine",abbr3:"Ala",abbr1:"A",essential:false,formula:"C₃H₇NO₂",type:"neutral",sidechain:"-CH₃（メチル基）",tags:[],desc:"側鎖にメチル基を持つ最小の非極性アミノ酸。エネルギー代謝に重要。"},
+  {name:"バリン",en:"Valine",abbr3:"Val",abbr1:"V",essential:true,formula:"C₅H₁₁NO₂",type:"neutral",sidechain:"-CH(CH₃)₂（イソプロピル基）",tags:['branched'],desc:"分岐鎖アミノ酸(BCAA)。筋肉のエネルギー源として重要な必須アミノ酸。"},
+  {name:"ロイシン",en:"Leucine",abbr3:"Leu",abbr1:"L",essential:true,formula:"C₆H₁₃NO₂",type:"neutral",sidechain:"-CH₂CH(CH₃)₂（イソブチル基）",tags:['branched'],desc:"BCAAのひとつ。タンパク質合成を促進するmTOR経路を活性化。筋肉合成に特に重要。"},
+  {name:"イソロイシン",en:"Isoleucine",abbr3:"Ile",abbr1:"I",essential:true,formula:"C₆H₁₃NO₂",type:"neutral",sidechain:"-CH(CH₃)CH₂CH₃（2つの不斉炭素）",tags:['branched'],desc:"BCAAのひとつ。2つの不斉炭素を持ちロイシンの構造異性体。ヘモグロビン合成にも関与。"},
+  {name:"セリン",en:"Serine",abbr3:"Ser",abbr1:"S",essential:false,formula:"C₃H₇NO₃",type:"neutral",sidechain:"-CH₂OH（ヒドロキシメチル基）",tags:[],desc:"ヒドロキシル基(-OH)を持つ極性アミノ酸。リン酸化のターゲット。シグナル伝達に重要。"},
+  {name:"スレオニン",en:"Threonine",abbr3:"Thr",abbr1:"T",essential:true,formula:"C₄H₉NO₃",type:"neutral",sidechain:"-CH(OH)CH₃（ヒドロキシエチル基）",tags:[],desc:"2つの不斉炭素を持つ必須アミノ酸。グリコーゲン合成やリン酸化部位として機能。"},
+  {name:"システイン",en:"Cysteine",abbr3:"Cys",abbr1:"C",essential:false,formula:"C₃H₇NO₂S",type:"neutral",sidechain:"-CH₂SH（チオール基）",tags:['sulfur'],desc:"チオール基(-SH)を持つ硫黄含有アミノ酸。ジスルフィド結合でタンパク質構造を安定化。"},
+  {name:"メチオニン",en:"Methionine",abbr3:"Met",abbr1:"M",essential:true,formula:"C₅H₁₁NO₂S",type:"neutral",sidechain:"-CH₂CH₂SCH₃（チオエーテル）",tags:['sulfur'],desc:"硫黄含有アミノ酸。タンパク質合成の開始コドン（AUG）に対応。SAMの前駆体。"},
+  {name:"アスパラギン酸",en:"Aspartate",abbr3:"Asp",abbr1:"D",essential:false,formula:"C₄H₇NO₄",type:"acidic",sidechain:"-CH₂COOH（カルボキシメチル）",tags:['charged'],desc:"酸性側鎖(-COOH)を持つアミノ酸。神経伝達物質として機能。尿素回路に関与。"},
+  {name:"グルタミン酸",en:"Glutamate",abbr3:"Glu",abbr1:"E",essential:false,formula:"C₅H₉NO₄",type:"acidic",sidechain:"-CH₂CH₂COOH（カルボキシエチル）",tags:['charged'],desc:"主要な興奮性神経伝達物質。うま味成分（MSG）の素。α-ケトグルタル酸と変換。"},
+  {name:"アスパラギン",en:"Asparagine",abbr3:"Asn",abbr1:"N",essential:false,formula:"C₄H₈N₂O₃",type:"neutral",sidechain:"-CH₂CONH₂（アミドメチル）",tags:[],desc:"アスパラガスから発見。アミド基を持つ極性アミノ酸。N型糖鎖修飾の部位。"},
+  {name:"グルタミン",en:"Glutamine",abbr3:"Gln",abbr1:"Q",essential:false,formula:"C₅H₁₀N₂O₃",type:"neutral",sidechain:"-CH₂CH₂CONH₂（アミドエチル）",tags:[],desc:"血中最多のアミノ酸。腸管・免疫細胞のエネルギー源。窒素運搬体としてアンモニア解毒。"},
+  {name:"リシン",en:"Lysine",abbr3:"Lys",abbr1:"K",essential:true,formula:"C₆H₁₄N₂O₂",type:"basic",sidechain:"-(CH₂)₄NH₂（ε-アミノ基）",tags:['charged'],desc:"ε-アミノ基を持つ塩基性必須アミノ酸。コラーゲン架橋やヒストン修飾の部位。"},
+  {name:"アルギニン",en:"Arginine",abbr3:"Arg",abbr1:"R",essential:false,formula:"C₆H₁₄N₄O₂",type:"basic",sidechain:"グアニジノ基（最も塩基性が強い）",tags:['charged'],desc:"最も塩基性の強いアミノ酸。一酸化窒素(NO)合成の基質。尿素回路に必須。"},
+  {name:"ヒスチジン",en:"Histidine",abbr3:"His",abbr1:"H",essential:true,formula:"C₆H₉N₃O₂",type:"basic",sidechain:"イミダゾール環",tags:['charged','aromatic'],desc:"イミダゾール環を持つ塩基性アミノ酸。生理的pHで緩衝作用。ヘモグロビンの酸素結合に関与。"},
+  {name:"フェニルアラニン",en:"Phenylalanine",abbr3:"Phe",abbr1:"F",essential:true,formula:"C₉H₁₁NO₂",type:"neutral",sidechain:"-CH₂-C₆H₅（ベンジル基）",tags:['aromatic'],desc:"ベンゼン環を持つ芳香族アミノ酸。チロシン・ドーパミンの前駆体。"},
+  {name:"チロシン",en:"Tyrosine",abbr3:"Tyr",abbr1:"Y",essential:false,formula:"C₉H₁₁NO₃",type:"neutral",sidechain:"-CH₂-C₆H₄-OH（パラヒドロキシベンジル）",tags:['aromatic'],desc:"フェニルアラニンから合成。ドーパミン・チロキシンの前駆体。リン酸化シグナルの要。"},
+  {name:"トリプトファン",en:"Tryptophan",abbr3:"Trp",abbr1:"W",essential:true,formula:"C₁₁H₁₂N₂O₂",type:"neutral",sidechain:"インドール環（bicyclic）",tags:['aromatic'],desc:"インドール環を持つ最大の芳香族アミノ酸。セロトニン・メラトニンの前駆体。"},
+  {name:"プロリン",en:"Proline",abbr3:"Pro",abbr1:"P",essential:false,formula:"C₅H₉NO₂",type:"neutral",sidechain:"環状（N-Cα結合を含む5員環）",tags:[],desc:"側鎖がα-アミノ基と環状構造を形成する特殊なアミノ酸。コラーゲンに多く含まれる。"},
+];
+
+function badgeInfo(a){if(a.type==='acidic')return{cls:'acidic',label:'酸性アミノ酸'};if(a.type==='basic')return{cls:'basic',label:'塩基性アミノ酸'};if(a.essential)return{cls:'essential',label:'必須アミノ酸'};return{cls:'nonessential',label:'非必須アミノ酸'};}
+
+// ===== STATE =====
+let learned=new Set(JSON.parse(localStorage.getItem('aa_v5')||'[]'));
+let quizStat=JSON.parse(localStorage.getItem('aa_qv5')||'{"correct":0,"total":0}');
+let sqStat=JSON.parse(localStorage.getItem('aa_sqv5')||'{"correct":0,"total":0}');
+let flashIdx=0,flashFlipped=false,currentFilter='all',currentSearch='',modalIdx=-1;
+let quizAnswered=false,sqAnswered=false,sqMode='struct_to_name',cmpFilter='all',compareSelected=[];
+function saveState(){localStorage.setItem('aa_v5',JSON.stringify([...learned]));localStorage.setItem('aa_qv5',JSON.stringify(quizStat));localStorage.setItem('aa_sqv5',JSON.stringify(sqStat));}
+
+function showSection(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('comparePanel').classList.remove('show');
+  if(id==='flash')updateFlash();if(id==='quiz')generateQuiz();if(id==='structquiz')generateSq();if(id==='compare')renderCompareGrid();if(id==='stats')updateStats();
+}
+
+function renderCards(){
+  const filtered=aminoAcids.filter(a=>{const mf=currentFilter==='all'||(currentFilter==='essential'&&a.essential)||(currentFilter==='nonessential'&&!a.essential);const q=currentSearch.toLowerCase();return mf&&(!q||a.name.includes(q)||a.en.toLowerCase().includes(q)||a.abbr3.toLowerCase().includes(q)||a.abbr1.toLowerCase().includes(q));});
+  document.getElementById('cardGrid').innerHTML=filtered.map(a=>{const idx=aminoAcids.indexOf(a),bi=badgeInfo(a);return `<div class="amino-card ${learned.has(idx)?'learned':''}" onclick="openModal(${idx})"><div class="learned-dot"></div><div class="card-top"><div class="card-name">${a.name}</div><div class="card-abbr">${a.abbr3}/${a.abbr1}</div></div><span class="badge ${bi.cls}">${bi.label}</span><div class="card-formula">${a.formula}</div><div class="card-svg-wrap">${getSvg(a,false)}</div></div>`;}).join('');
+}
+function setFilter(f,btn){currentFilter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCards();}
+function filterCards(){currentSearch=document.getElementById('searchInput').value;renderCards();}
+
+function openModal(idx){const a=aminoAcids[idx];modalIdx=idx;const bi=badgeInfo(a);document.getElementById('mName').textContent=a.name;document.getElementById('mAbbr').textContent=`${a.abbr3} (${a.abbr1})`;document.getElementById('mFormula').textContent=a.formula;const badge=document.getElementById('mBadge');badge.textContent=bi.label;badge.className='badge '+bi.cls;document.getElementById('mStructure').innerHTML=getSvg(a,true);document.getElementById('mDesc').textContent=a.desc;const btn=document.getElementById('mLearnBtn');if(learned.has(idx)){btn.textContent='✓ 学習済み';btn.className='btn btn-outline';}else{btn.textContent='✓ 覚えた';btn.className='btn btn-success';}document.getElementById('modalOverlay').classList.add('open');}
+function closeModal(e){if(e.target===document.getElementById('modalOverlay'))closeModalDirect();}
+function closeModalDirect(){document.getElementById('modalOverlay').classList.remove('open');}
+function toggleLearnedFromModal(){if(learned.has(modalIdx))learned.delete(modalIdx);else learned.add(modalIdx);saveState();updateProgress();renderCards();openModal(modalIdx);}
+function updateProgress(){const pct=Math.round(learned.size/aminoAcids.length*100);document.getElementById('progressLabel').textContent=`${learned.size} / ${aminoAcids.length} 学習済み`;document.getElementById('progressFill').style.width=pct+'%';}
+
+function updateFlash(){const a=aminoAcids[flashIdx];document.getElementById('flashProgress').textContent=`カード ${flashIdx+1} / ${aminoAcids.length}`;document.getElementById('flashFront').textContent=a.abbr3;document.getElementById('flashFrontSub').textContent='略号（3文字）';document.getElementById('flashBack').textContent=a.name;document.getElementById('flashBackSub').textContent=`${a.en} · ${a.abbr1} · ${a.essential?'必須':'非必須'}`;document.getElementById('flashStructure').innerHTML=getSvg(a,false);flashFlipped=false;document.getElementById('flashInner').classList.remove('flipped');}
+function flipCard(){flashFlipped=!flashFlipped;document.getElementById('flashInner').classList.toggle('flipped',flashFlipped);}
+function nextFlash(){flashIdx=(flashIdx+1)%aminoAcids.length;updateFlash();}
+function prevFlash(){flashIdx=(flashIdx-1+aminoAcids.length)%aminoAcids.length;updateFlash();}
+function markLearned(){learned.add(flashIdx);saveState();updateProgress();renderCards();nextFlash();}
+
+function generateQuiz(){quizAnswered=false;document.getElementById('quizResult').className='quiz-result';document.getElementById('quizNextBtn').style.display='none';const types=['name_from_abbr','abbr_from_name','essential_yn'];const type=types[Math.floor(Math.random()*types.length)];const ci=Math.floor(Math.random()*aminoAcids.length);const correct=aminoAcids[ci];let q='',sub='',options=[],correctAns='';if(type==='name_from_abbr'){q=`「${correct.abbr3}」の名前は？`;sub='略号からアミノ酸名を選べ';correctAns=correct.name;options=[correctAns,...aminoAcids.filter((_,i)=>i!==ci).sort(()=>Math.random()-.5).slice(0,3).map(a=>a.name)].sort(()=>Math.random()-.5);}else if(type==='abbr_from_name'){q=`「${correct.name}」の略号(3文字)は？`;sub='アミノ酸名から略号を選べ';correctAns=correct.abbr3;options=[correctAns,...aminoAcids.filter((_,i)=>i!==ci).sort(()=>Math.random()-.5).slice(0,3).map(a=>a.abbr3)].sort(()=>Math.random()-.5);}else{q=`「${correct.name}」は必須アミノ酸か？`;sub='ヒトが体内で合成できないものが必須アミノ酸';correctAns=correct.essential?'必須アミノ酸':'非必須アミノ酸';options=['必須アミノ酸','非必須アミノ酸'];}document.getElementById('quizQ').textContent=q;document.getElementById('quizSub').textContent=sub;document.getElementById('quizOptions').innerHTML=options.map(o=>`<button class="quiz-option" onclick="answerQuiz(this,'${o.replace(/'/g,"\\'")}','${correctAns.replace(/'/g,"\\'")}')">${o}</button>`).join('');document.getElementById('quizScore').textContent=`正解: ${quizStat.correct} / ${quizStat.total}`;}
+function answerQuiz(btn,ans,correctAns){if(quizAnswered)return;quizAnswered=true;quizStat.total++;const ok=ans===correctAns;if(ok)quizStat.correct++;saveState();document.querySelectorAll('.quiz-option').forEach(b=>{b.disabled=true;if(b.textContent===correctAns)b.classList.add('correct');});if(!ok)btn.classList.add('wrong');const res=document.getElementById('quizResult');res.textContent=ok?'✓ 正解！':`✗ 不正解。正解は「${correctAns}」です。`;res.className='quiz-result show '+(ok?'ok':'ng');document.getElementById('quizScore').textContent=`正解: ${quizStat.correct} / ${quizStat.total}`;document.getElementById('quizNextBtn').style.display='inline-block';}
+function nextQuiz(){generateQuiz();}
+
+function setSqMode(mode,btn){sqMode=mode;document.querySelectorAll('.sq-mode-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');generateSq();}
+function generateSq(){sqAnswered=false;document.getElementById('sqResult').className='sq-result';document.getElementById('sqNextBtn').style.display='none';const ci=Math.floor(Math.random()*aminoAcids.length);const correct=aminoAcids[ci];const wrongs=aminoAcids.filter((_,i)=>i!==ci).sort(()=>Math.random()-.5).slice(0,3);if(sqMode==='struct_to_name'){document.getElementById('sqDisplay').style.display='flex';document.getElementById('sqStructSvg').innerHTML=getSvg(correct,true);document.getElementById('sqQuestion').textContent='この構造式のアミノ酸は？';document.getElementById('sqSub').textContent='NH₂基・側鎖・COOHに注目しよう';const opts=[correct,...wrongs].sort(()=>Math.random()-.5);document.getElementById('sqOptions').innerHTML=opts.map(o=>`<button class="sq-option" data-abbr="${o.abbr3}" onclick="answerSq(this,'${o.abbr3}','${correct.abbr3}')">${o.name}<br><span style="font-size:.73rem;opacity:.7;font-family:'DM Mono',monospace">${o.abbr3}</span></button>`).join('');}else{document.getElementById('sqDisplay').style.display='none';document.getElementById('sqQuestion').textContent=`「${correct.name}」の構造式はどれ？`;document.getElementById('sqSub').textContent='側鎖の形を見比べて選んでください';const opts=[correct,...wrongs].sort(()=>Math.random()-.5);document.getElementById('sqOptions').innerHTML=opts.map(o=>`<button class="sq-option" data-abbr="${o.abbr3}" onclick="answerSq(this,'${o.abbr3}','${correct.abbr3}')" style="padding:10px 6px;">${getSvg(o,false)}<div style="font-size:.75rem;margin-top:5px;font-family:'DM Mono',monospace;opacity:.8">${o.abbr3}</div></button>`).join('');}document.getElementById('sqScore').textContent=`正解: ${sqStat.correct} / ${sqStat.total}`;}
+function answerSq(btn,ans,correctAbbr){if(sqAnswered)return;sqAnswered=true;sqStat.total++;const ok=ans===correctAbbr;if(ok)sqStat.correct++;saveState();document.querySelectorAll('.sq-option').forEach(b=>{b.disabled=true;if(b.dataset.abbr===correctAbbr)b.classList.add('correct');});if(!ok)btn.classList.add('wrong');const ca=aminoAcids.find(a=>a.abbr3===correctAbbr);const res=document.getElementById('sqResult');res.innerHTML=ok?`✓ 正解！<br><span style="font-size:.8rem;opacity:.85">側鎖: ${ca.sidechain}</span>`:`✗ 不正解。正解は「${ca.name}（${ca.abbr3}）」です。<br><span style="font-size:.8rem;opacity:.85">側鎖: ${ca.sidechain}</span>`;res.className='sq-result show '+(ok?'ok':'ng');document.getElementById('sqScore').textContent=`正解: ${sqStat.correct} / ${sqStat.total}`;document.getElementById('sqNextBtn').style.display='inline-block';}
+function nextSq(){generateSq();}
+
+const cmpTagMap={all:()=>true,essential:a=>a.essential,nonessential:a=>!a.essential,aromatic:a=>a.tags.includes('aromatic'),charged:a=>a.tags.includes('charged'),sulfur:a=>a.tags.includes('sulfur'),branched:a=>a.tags.includes('branched')};
+function setCmpFilter(f,btn){cmpFilter=f;document.querySelectorAll('.cmp-tag').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCompareGrid();}
+function renderCompareGrid(){document.getElementById('compareSelectView').style.display='block';document.getElementById('fullCompare').classList.remove('show');const filtered=aminoAcids.filter(cmpTagMap[cmpFilter]||cmpTagMap.all);document.getElementById('compareGrid').innerHTML=filtered.map(a=>{const idx=aminoAcids.indexOf(a),bi=badgeInfo(a);return `<div class="cmp-card ${compareSelected.includes(idx)?'selected':''}" onclick="toggleCompare(${idx},this)"><div class="cmp-name">${a.name}</div><div class="cmp-abbr">${a.abbr3}/${a.abbr1}</div><div class="cmp-svg-wrap">${getSvg(a,false)}</div><span class="badge ${bi.cls}" style="font-size:.68rem;padding:2px 8px">${bi.label}</span></div>`;}).join('');updateComparePanel();}
+function toggleCompare(idx,card){const pos=compareSelected.indexOf(idx);if(pos===-1){if(compareSelected.length>=4){alert('最大4個まで');return;}compareSelected.push(idx);card.classList.add('selected');}else{compareSelected.splice(pos,1);card.classList.remove('selected');}updateComparePanel();}
+function updateComparePanel(){const panel=document.getElementById('comparePanel');if(compareSelected.length===0){panel.classList.remove('show');return;}panel.classList.add('show');document.getElementById('compareSelectedList').innerHTML=compareSelected.map(idx=>{const a=aminoAcids[idx];return `<span class="compare-chip">${a.abbr3}<span class="compare-chip-x" onclick="removeCompare(${idx})">✕</span></span>`;}).join('');}
+function removeCompare(idx){const pos=compareSelected.indexOf(idx);if(pos!==-1)compareSelected.splice(pos,1);renderCompareGrid();}
+function showComparison(){if(compareSelected.length<2){alert('2個以上選択してください');return;}document.getElementById('compareSelectView').style.display='none';document.getElementById('fullCompare').classList.add('show');document.getElementById('comparePanel').classList.remove('show');const row=document.getElementById('compareCardsRow');row.style.gridTemplateColumns=`repeat(${compareSelected.length},1fr)`;row.innerHTML=compareSelected.map(idx=>{const a=aminoAcids[idx];const bi=badgeInfo(a);return `<div class="full-cmp-card"><div class="full-cmp-title">${a.name}</div><div class="full-cmp-meta">${a.abbr3}/${a.abbr1} · ${a.formula}</div><span class="badge ${bi.cls}" style="margin-bottom:0">${bi.label}</span><div class="full-cmp-svg">${getSvg(a,true)}</div><div class="sidechain-box">側鎖: ${a.sidechain}</div><div class="full-cmp-desc">${a.desc}</div></div>`;}).join('');}
+function backToSelect(){compareSelected=[];renderCompareGrid();}
+
+function updateStats(){document.getElementById('statLearned').textContent=learned.size;document.getElementById('statTotal').textContent=aminoAcids.length;document.getElementById('statQC').textContent=quizStat.correct+sqStat.correct;document.getElementById('statQT').textContent=quizStat.total+sqStat.total;document.getElementById('learnedList').innerHTML=aminoAcids.map((a,i)=>`<span class="learned-tag ${learned.has(i)?'done':''}">${learned.has(i)?'✓ ':''} ${a.abbr3}</span>`).join('');}
+function resetProgress(){if(!confirm('進捗をリセットしますか？'))return;learned.clear();quizStat={correct:0,total:0};sqStat={correct:0,total:0};saveState();updateProgress();renderCards();updateStats();}
+
+renderCards();updateProgress();updateFlash();generateQuiz();
+</script>
+</body>
+</html>
